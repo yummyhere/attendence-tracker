@@ -1,44 +1,32 @@
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
 
-let memoryServer: MongoMemoryServer | null = null;
+// Cache connection for serverless (Vercel) warm invocations
+let isConnected = false;
 
 export async function connectDB(): Promise<string> {
-  const customUri = process.env.MONGODB_URI;
-
-  if (customUri && customUri.trim() !== '') {
-    try {
-      console.log(`[DB] Connecting to provided MONGODB_URI: ${customUri.replace(/\/\/.*@/, '//***:***@')}`);
-      await mongoose.connect(customUri, {
-        dbName: 'office_management',
-      });
-      console.log('[DB] Connected to MongoDB successfully.');
-      return customUri;
-    } catch (err: any) {
-      console.warn(`[DB] Failed to connect to MONGODB_URI (${err.message}). Falling back to in-memory MongoDB.`);
-    }
+  // Return early if already connected (serverless connection reuse)
+  if (isConnected && mongoose.connection.readyState === 1) {
+    console.log('[DB] Reusing existing MongoDB connection.');
+    return mongoose.connection.host ?? '';
   }
 
-  // Initialize embedded MongoDB instance
-  console.log('[DB] Starting embedded MongoMemoryServer (database: office_management)...');
-  memoryServer = await MongoMemoryServer.create({
-    instance: {
-      dbName: 'office_management',
-    },
-  });
+  const uri = process.env.MONGODB_URI;
 
-  const uri = memoryServer.getUri();
+  if (!uri || uri.trim() === '') {
+    throw new Error('[DB] MONGODB_URI is not set. Please add it to your environment variables.');
+  }
+
+  console.log(`[DB] Connecting to MongoDB Atlas...`);
   await mongoose.connect(uri, {
     dbName: 'office_management',
   });
 
-  console.log(`[DB] Connected to embedded MongoDB at: ${uri}`);
+  isConnected = true;
+  console.log('[DB] Connected to MongoDB Atlas successfully.');
   return uri;
 }
 
 export async function disconnectDB(): Promise<void> {
   await mongoose.disconnect();
-  if (memoryServer) {
-    await memoryServer.stop();
-  }
+  isConnected = false;
 }
