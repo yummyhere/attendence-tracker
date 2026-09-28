@@ -1,0 +1,6 @@
+{
+  "name": "Smart Office Attendance & Activity Tracker",
+  "description": "Enterprise-grade employee attendance, punch clock, real-time activity tracking, and department aggregation analytics built with Node.js, Express, MongoDB, and React.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
